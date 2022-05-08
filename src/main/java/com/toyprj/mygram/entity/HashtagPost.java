@@ -1,7 +1,10 @@
 package com.toyprj.mygram.entity;
 
+import lombok.Getter;
+
 import javax.persistence.*;
 
+@Getter
 @Table(name= "hashtag_post")
 @Entity
 public class HashtagPost {

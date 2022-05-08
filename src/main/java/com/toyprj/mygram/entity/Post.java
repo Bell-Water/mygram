@@ -21,7 +21,7 @@ public class Post {
     private String content;
 
     @Column(columnDefinition = "int")
-    private Integer like;
+    private Integer likenumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name= "user_id")
