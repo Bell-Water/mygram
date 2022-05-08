@@ -1,7 +1,12 @@
 package com.toyprj.mygram.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.*;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 public class Comment {
     
@@ -14,4 +19,8 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User user;
+
 }
