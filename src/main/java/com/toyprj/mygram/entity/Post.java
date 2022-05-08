@@ -1,5 +1,7 @@
 package com.toyprj.mygram.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +11,9 @@ import java.util.List;
 
 @Getter
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Post {
 
     @Id
@@ -27,6 +32,7 @@ public class Post {
     @JoinColumn(name= "user_id")
     private User user;
 
+    @Builder.Default
     @OneToMany(mappedBy = "id.postId")
     private List<HashtagPost> hashtagPostList = new ArrayList<>();
 
