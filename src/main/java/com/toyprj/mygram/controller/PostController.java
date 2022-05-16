@@ -1,6 +1,9 @@
 package com.toyprj.mygram.controller;
 
 import com.toyprj.mygram.dto.BoardDto;
+import com.toyprj.mygram.dto.PostDto;
+import com.toyprj.mygram.entity.Post;
+import com.toyprj.mygram.entity.User;
 import com.toyprj.mygram.repository.CommentRepository;
 import com.toyprj.mygram.repository.PostRepository;
 import com.toyprj.mygram.repository.UserRepository;
@@ -11,7 +14,11 @@ import com.toyprj.mygram.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -36,10 +43,10 @@ public class PostController {
         return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, new BoardDto());
     }
 
-    @GetMapping("/post")
+    @GetMapping("/board/post")
     public Response<BoardDto> getBoardByPageable(
             @RequestParam(value="page", required=false, defaultValue= "0") Integer page,
-            @RequestParam(value="query", required=false) String word) {
+            @RequestParam(value="word", required=false) String word) {
 
         System.out.println("query : " + word);
 
@@ -51,13 +58,13 @@ public class PostController {
         if(word != null) {
             board = postService.getPostWithWord(word, pageRequest);
         } else {
-            board = postService.getPost(pageRequest);
+            board = postService.getBoard(pageRequest);
         }
 
         return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, board);
     }
 
-    @GetMapping("/post/hashtag/{hashtag}")
+    @GetMapping("/board/post/hashtag/{hashtag}")
     public Response<BoardDto> getBoardByWord(
             @PathVariable String hashtag,
             @RequestParam(value="page", required = false, defaultValue = "0") Integer page) {
@@ -73,7 +80,7 @@ public class PostController {
 
     }
 
-    @GetMapping("/post/user/{nickname}")
+    @GetMapping("/board/post/user/{nickname}")
     public Response<BoardDto> getBoardByPageableAndNickname(
             @PathVariable String nickname,
             @RequestParam(value="page", required=false, defaultValue= "0") Integer page) {
@@ -89,64 +96,37 @@ public class PostController {
         return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, board);
     }
 
-    /*@PostMapping("/post")
-    public Response<BoardDto> craetPost(@RequestBody PostDto postDto) {
+    @GetMapping("/board/post/{postId}")
+    public Response<PostDto> getPost(@PathVariable Long postId) {
 
+        PostDto postDto = postService.getPost(postId);
 
-    }*/
+        return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, postDto);
+    }
 
-    /*@GetMapping("/post")
-    public void getBoard2() {
+    @PostMapping("/board/post")
+    public Response<PostDto> createPost(@Valid @RequestBody PostDto postDto , @AuthenticationPrincipal User user) {
 
-    }*/
-
-    /*@PostConstruct
-    public void init() {
-
-        for(int i=0; i<500; i++) {
-            if(i%3 == 2) {
-//                User user = userRepository.getById(1L);
-                User user = userRepository.findById(6L).get();
-                Post post = Post.builder()
-                        .title("title" + i)
-                        .content("content" + i)
-                        .likenumber(i * 5 + 2)
-                        .user(user)
-                        .build();
-
-                postRepository.save(post);
-
-                Comment comment = new Comment(0L, "i'll be back" + i * 6, post, user);
-                commentRepository.save(comment);
-            } else if(i%3 == 1) {
-                User user = userRepository.findById(7L).get();
-                Post post = Post.builder()
-                        .title("제목" + i)
-                        .content("내용" + i)
-                        .likenumber(i * 5 + 2)
-                        .user(user)
-                        .build();
-
-                postRepository.save(post);
-
-                Comment comment = new Comment(0L, "내가 왔다감" + i * 6, post,user);
-                commentRepository.save(comment);
-            } else {
-//                User user = userRepository.findById(8L).get();
-                User user = userRepository.getById(8L);
-                Post post = Post.builder()
-                        .title("무제" + i)
-                        .content("제곧내" + i)
-                        .likenumber(i * 5 + 2)
-                        .user(user)
-                        .build();
-
-                postRepository.save(post);
-
-                Comment comment = new Comment(0L, "나 아님" + i * 6, post, user);
-                commentRepository.save(comment);
-            }
+        if(user == null) {
+            throw new IllegalArgumentException("로그인 해야 됩니다.");
         }
-    }*/
 
+        PostDto boardDto = postService.savePost(user, postDto);
+
+        return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, boardDto);
+    }
+
+    @PutMapping("/board/post")
+    public Response<Integer> updatePost(@RequestBody PostDto postDto ,@AuthenticationPrincipal User user) {
+
+        Integer postId = postService.updatePost(postDto, user);
+        return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS, postId);
+    }
+
+    @DeleteMapping("/board/post")
+    public Response deletePost(@RequestBody Map<String, Long> postMap, @AuthenticationPrincipal User user) {
+
+        postService.deletePost(postMap.get("postId"), user);
+        return new Response(ResponseCode.SUCCESS, ResponseMessage.SUCCESS);
+    }
 }

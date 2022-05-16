@@ -15,14 +15,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(IllegalArgumentException.class)
     public Response handleIllegalArgumentException(IllegalArgumentException illegalArgumentException) {
-        return new Response<>(ResponseCode.ILLEGAL_ARGUMENT, illegalArgumentException.getMessage(),
-                illegalArgumentException);
+        return new Response<>(ResponseCode.ILLEGAL_ARGUMENT, illegalArgumentException.getMessage());
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(IllegalStateException.class)
     public Response handleIllegalStateException(IllegalStateException illegalStateException) {
-        return new Response<>(ResponseCode.ILLEGAL_STATE, illegalStateException.getMessage(), illegalStateException);
+        return new Response<>(ResponseCode.ILLEGAL_STATE, illegalStateException.getMessage());
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

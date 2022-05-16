@@ -2,10 +2,7 @@ package com.toyprj.mygram.service;
 
 import com.toyprj.mygram.dto.BoardDto;
 import com.toyprj.mygram.dto.PostDto;
-import com.toyprj.mygram.entity.Hashtag;
-import com.toyprj.mygram.entity.HashtagPost;
-import com.toyprj.mygram.entity.Post;
-import com.toyprj.mygram.entity.User;
+import com.toyprj.mygram.entity.*;
 import com.toyprj.mygram.repository.HashtagPostRepository;
 import com.toyprj.mygram.repository.HashtagRepository;
 import com.toyprj.mygram.repository.PostRepository;
@@ -17,9 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.IllformedLocaleException;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Transactional
@@ -31,7 +27,7 @@ public class PostService {
     private final HashtagRepository hashtagRepository;
     private final HashtagPostRepository hashtagPostRepository;
 
-    public BoardDto getPost(Pageable pageable) {
+    public BoardDto getBoard(Pageable pageable) {
 
         // 글 작성자, 글 제목, 골 좋아요 수 리턴
         ArrayList<PostDto> postList = new ArrayList<>();
@@ -39,7 +35,7 @@ public class PostService {
         Page<Post> result = postRepository.findAll(pageable);
 
         result.map(post -> postList.add(
-                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), post.getLikenumber())
+                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), null, post.getLikenumber())
         ));
 
         return new BoardDto(pageable.getPageNumber(), postList.size(), postList);
@@ -52,7 +48,7 @@ public class PostService {
         Page<Post> result = postRepository.findByTitleContaining(word, pageable);
 
         result.map( post -> postList.add(
-                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), post.getLikenumber())
+                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), null, post.getLikenumber())
         ));
 
         return new BoardDto(pageable.getPageNumber(), postList.size(), postList);
@@ -85,7 +81,7 @@ public class PostService {
         ArrayList<PostDto> postDtoList = new ArrayList<>();
 
         postList.forEach(post -> postDtoList
-                .add(new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), post.getLikenumber())));
+                .add(new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), null, post.getLikenumber())));
 
 
         return new BoardDto(pageable.getPageNumber(), postList.size(), postDtoList);
@@ -104,12 +100,80 @@ public class PostService {
         Page<Post> result = postRepository.findByUser(user, pageable);
 
         result.map(post -> postList.add(
-                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), post.getLikenumber())
+                new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), null, post.getLikenumber())
         ));
 
         return new BoardDto(pageable.getPageNumber(), postList.size(), postList);
     }
 
+    public PostDto getPost(Long postId) {
+
+        Post post = postRepository.findById(postId).orElseThrow(() -> new IllformedLocaleException("존재하지 않는 post입니다."));
+
+        return new PostDto(post.getId(), post.getUser().getNickname(),
+                post.getTitle(), post.getContent(), post.getLikenumber());
+    }
+
+    public PostDto savePost(User user, PostDto postDto) {
+
+        /*
+        1. 양쪽 공백 제거
+        2. 해당 해시태그 존재 검사
+        3.1 해당 해시태그 존재하면 가져와서 plan이랑 저장
+        3.2 해당 해시태그 존재안하면 만들고 plan이랑 저장
+        4.
+         */
+
+        String[] hashArray = postDto.getContent().split("#");
+
+        Post post = Post.builder()
+                .title(postDto.getTitle())
+                .content(postDto.getContent())
+                .user(user)
+                .likenumber(0)
+                .build();
+
+        postRepository.save(post);
+
+        for(int i=1; i<hashArray.length; i++) {
+            Optional findHashtag = hashtagRepository.findByName(hashArray[i].trim());
+            if(findHashtag.isEmpty()) {
+                Hashtag ht = new Hashtag(null, hashArray[i].trim(), new ArrayList<>());
+                hashtagRepository.save(ht);
+                findHashtag = Optional.of(ht);
+            }
+            Hashtag hashtag = (Hashtag)findHashtag.get();
+            HashtagPostId hpi = new HashtagPostId(post.getId(), hashtag.getId());
+            HashtagPost hp = new HashtagPost(hpi, post, hashtag);
+            //HashtagPost hp = new HashtagPost(null, post, hashtag);
+            hashtagPostRepository.save(hp);
+            hp.changePost(post);
+            hp.changeHashtag(hashtag);
+        }
+
+        return new PostDto(post.getId(), post.getUser().getNickname(), post.getTitle(), post.getContent(), post.getLikenumber());
+    }
+
+    public Integer updatePost(PostDto postDto, User user) {
+
+        User postUser = userRepository.findByNickname(postDto.getNickname())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저 입니다."));
+
+        if(postUser.getId() != user.getId()) {
+            throw new IllegalArgumentException("Post를 작성한 유저가 아닙니다.");
+        }
+
+        return postRepository.updatePost(postDto.getPostId(), postDto.getTitle(), postDto.getContent());
+    }
+
+    public void deletePost(Long postId, User user) {
+
+        try {
+            postRepository.deleteById(postId);
+        } catch(RuntimeException e) {
+            throw new IllegalArgumentException("post를 삭제하지 못하였습니다.");
+        }
+    }
 
     /*public ArrayList<PostDto> getPost(Pageable pageable) {
 
